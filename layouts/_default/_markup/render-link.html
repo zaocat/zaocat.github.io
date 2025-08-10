@@ -1,0 +1,7 @@
+{{- $u := .Destination | safeURL -}}
+{{- /* Treat same-page anchors and site-internal links as internal to avoid target=_blank */ -}}
+{{- $isExternal := (and (hasPrefix $u "http") (not (strings.HasPrefix $u (site.BaseURL)))) -}}
+<a href="{{ $u }}"{{ if $isExternal }} target="_blank" rel="noopener noreferrer"{{ end }}>
+  {{ .Text | safeHTML }}
+</a>
+

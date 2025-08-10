@@ -2,7 +2,7 @@ name: Deploy Blog
 
 on:
   schedule:
-    - cron: '0 */1 * * *'
+    - cron: '0 */6 * * *'
   push:
     branches: [main]
   workflow_dispatch:
@@ -16,29 +16,45 @@ jobs:
       with:
         submodules: true
 
+    - name: Download PaperMod theme
+      run: |
+        mkdir -p themes
+        if [ ! -d themes/PaperMod ]; then
+          echo "PaperMod theme not found. Cloning..."
+          git clone --depth=1 https://github.com/adityatelange/hugo-PaperMod.git themes/PaperMod
+        else
+          echo "PaperMod theme already present."
+        fi
+
     - name: Setup Python
       uses: actions/setup-python@v4
       with:
-        python-version: '3.11'
+        python-version: '3.10'
 
-    - name: Cache dependencies
+    - name: Setup uv
+      uses: astral-sh/setup-uv@v3
+
+    - name: Cache dependencies (uv)
       uses: actions/cache@v3
       with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        path: |
+          ~/.cache/uv
+          ~/.cache/pip
+        key: ${{ runner.os }}-uv-${{ hashFiles('**/requirements.txt') }}
 
-    - name: Install dependencies
+    - name: Install dependencies (uv)
       run: |
-        cd scripts
-        pip install -r requirements.txt
+        uv venv --python 3.10
+        source .venv/bin/activate
+        uv pip install -r requirements.txt
 
     - name: Sync posts from Notion
       env:
         NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
         NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
       run: |
-        cd scripts
-        python notion_sync.py --clean
+        source .venv/bin/activate
+        python scripts/notion_sync.py --clean
 
     - name: Setup Hugo
       uses: peaceiris/actions-hugo@v2
@@ -50,10 +66,8 @@ jobs:
       run: hugo --minify
 
     - name: Deploy to Cloudflare Pages
-      uses: cloudflare/pages-action@v1
+      uses: cloudflare/wrangler-action@v3
       with:
         apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        projectName: your-blog-name
-        directory: public
-        gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+        command: pages deploy ./public --project-name ${{ vars.CLOUDFLARE_PAGES_PROJECT }} --branch ${{ github.ref_name }}

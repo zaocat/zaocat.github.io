@@ -12,12 +12,6 @@ if ! command -v hugo &> /dev/null; then
     exit 1
 fi
 
-# Copy config file
-if [ ! -f config.toml ]; then
-    echo "📝 Creating config.toml from template..."
-    cp config.toml.example config.toml
-    echo "✅ Created config.toml - Please edit it with your settings"
-fi
 # Copy .env file
 if [ ! -f .env ]; then
     echo "🔑 Creating .env file from template..."
@@ -32,6 +26,21 @@ mkdir -p static/images
 mkdir -p static/videos
 mkdir -p static/audio
 mkdir -p themes
+
+# Ensure GitHub Actions deploy workflow exists (copy from template if missing)
+mkdir -p .github/workflows
+if [ ! -f .github/workflows/deploy.yml ]; then
+    if [ -f .github/workflows/deploy.example.yml ]; then
+        echo "🛠 Initializing GitHub Actions deploy workflow..."
+        cp .github/workflows/deploy.example.yml .github/workflows/deploy.yml
+        echo "✅ Created .github/workflows/deploy.yml from template."
+        echo "   Remember to set repository secrets: NOTION_TOKEN, NOTION_DATABASE_ID, CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID."
+    else
+        echo "⚠️  Template .github/workflows/deploy.example.yml not found. Please copy it manually."
+    fi
+else
+    echo "ℹ️  .github/workflows/deploy.yml already exists."
+fi
 
 # Install Python dependencies
 if command -v python3 &> /dev/null; then

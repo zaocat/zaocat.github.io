@@ -252,27 +252,46 @@ class NotionClient:
             return None
 
     def _get_page_blocks(self, page_id: str) -> List[Dict[str, Any]]:
-        """Get all blocks of a page"""
-        blocks = []
-        has_more = True
-        cursor = None
+        """Get all blocks of a page with full nested children (recursive)."""
 
-        while has_more:
-            try:
-                if cursor:
-                    response = self.client.blocks.children.list(
-                        block_id=page_id,
-                        start_cursor=cursor
-                    )
-                else:
-                    response = self.client.blocks.children.list(block_id=page_id)
+        def fetch_children_recursively(block_id: str) -> List[Dict[str, Any]]:
+            collected_blocks: List[Dict[str, Any]] = []
+            local_has_more = True
+            local_cursor = None
 
-                blocks.extend(response['results'])
-                has_more = response['has_more']
-                cursor = response.get('next_cursor')
-            except Exception as e:
-                logger.error(f"Error fetching blocks for page {page_id}: {e}")
-                break
+            while local_has_more:
+                try:
+                    if local_cursor:
+                        resp = self.client.blocks.children.list(
+                            block_id=block_id,
+                            start_cursor=local_cursor
+                        )
+                    else:
+                        resp = self.client.blocks.children.list(block_id=block_id)
 
-        return blocks
+                    items = resp.get('results', [])
+
+                    for b in items:
+                        # Recursively populate children for any block that has them
+                        if b.get('has_children'):
+                            try:
+                                b['children'] = fetch_children_recursively(b['id'])
+                            except Exception as child_err:
+                                logger.warning(
+                                    f"Failed to fetch children for block {b.get('id')}: {child_err}"
+                                )
+                                b['children'] = []
+
+                        collected_blocks.append(b)
+
+                    local_has_more = resp.get('has_more', False)
+                    local_cursor = resp.get('next_cursor')
+                except Exception as e:
+                    logger.error(f"Error fetching children for block {block_id}: {e}")
+                    break
+
+            return collected_blocks
+
+        # Top-level: page_id is also a block container for its direct children
+        return fetch_children_recursively(page_id)
 

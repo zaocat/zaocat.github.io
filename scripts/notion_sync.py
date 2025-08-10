@@ -94,6 +94,19 @@ def main():
         posts = notion_client.get_published_posts()
         logger.info(f"Found {len(posts)} published posts")
 
+        # Build ID -> slug map for internal link rewriting
+        id_to_slug = {}
+        for p in posts:
+            if getattr(p, 'id', None) and getattr(p, 'slug', None):
+                # Store both hyphenated and compact IDs
+                compact_id = p.id.replace('-', '')
+                id_to_slug[p.id] = p.slug
+                id_to_slug[compact_id] = p.slug
+
+        # Provide mapping to converter
+        if hasattr(hugo_converter, 'set_id_to_slug_mapping'):
+            hugo_converter.set_id_to_slug_mapping(id_to_slug)
+
         # Convert posts
         success_count = 0
         with tqdm(total=len(posts), desc="Converting posts") as pbar:

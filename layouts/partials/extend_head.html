@@ -1,3 +1,21 @@
 {{ partial "math.html" . }}
 
-
+{{ if or .Params.mermaid (.Site.Params.mermaid) }}
+  <script defer src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      if (window.mermaid) {
+        mermaid.initialize({ startOnLoad: true, securityLevel: 'loose' });
+        // Convert fenced code blocks with mermaid language to div.mermaid
+        document.querySelectorAll('pre code.language-mermaid, pre code[class*="language-mermaid"]').forEach(function(codeEl) {
+          var text = codeEl.textContent;
+          var container = document.createElement('div');
+          container.className = 'mermaid';
+          container.textContent = text;
+          var pre = codeEl.closest('pre');
+          pre.parentNode.replaceChild(container, pre);
+        });
+      }
+    });
+  </script>
+{{ end }}

@@ -1,23 +1,44 @@
-FROM python:3.11-slim
+FROM python:3.10-slim
 
-# 安装 Hugo
-ENV HUGO_VERSION 0.119.0
-RUN apt-get update && \\
-    apt-get install -y wget && \\
-    wget -O hugo.deb https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}/hugo_extended_${HUGO_VERSION}_linux-amd64.deb && \\
-    dpkg -i hugo.deb && \\
-    rm hugo.deb && \\
-    apt-get clean
+ENV DEBIAN_FRONTEND=noninteractive
+ENV HUGO_VERSION=0.148.0
+ENV PATH="/root/.local/bin:${PATH}"
 
-# 设置工作目录
+# Install uv and Hugo
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends wget curl ca-certificates git \
+    && update-ca-certificates \
+    && curl -LsSf https://astral.sh/uv/install.sh | sh \
+    && wget -O /tmp/hugo.deb https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}/hugo_extended_${HUGO_VERSION}_linux-amd64.deb \
+    && dpkg -i /tmp/hugo.deb \
+    && rm -f /tmp/hugo.deb \
+    && apt-get purge -y --auto-remove curl wget \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set workdir
 WORKDIR /app
 
-# 复制依赖文件
-COPY scripts/requirements.txt ./scripts/
-RUN pip install --no-cache-dir -r scripts/requirements.txt
+# Copy dependencies and install with uv
+COPY requirements.txt ./
+RUN uv venv --python 3.10 \
+    && source .venv/bin/activate \
+    && uv pip install -r requirements.txt
 
-# 复制项目文件
+# Ensure venv is used by default
+ENV VIRTUAL_ENV=/app/.venv
+ENV PATH="/app/.venv/bin:${PATH}"
+
+# Copy project files
 COPY . .
 
-# 运行脚本
+# Download PaperMod theme
+RUN mkdir -p themes \
+    && if [ ! -d themes/PaperMod ]; then \
+        echo "PaperMod theme not found. Cloning..." && \
+        git clone https://github.com/adityatelange/hugo-PaperMod.git themes/PaperMod; \
+       else \
+        echo "PaperMod theme already present."; \
+       fi
+
+# Default command
 CMD ["python", "scripts/notion_sync.py"]

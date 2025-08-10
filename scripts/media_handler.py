@@ -94,12 +94,11 @@ class MediaHandler:
     def _optimize_image(self, file_path: str, max_width: int = 1920):
         """Optimize image size and quality"""
         try:
+            ext = os.path.splitext(file_path)[1].lower()
             with Image.open(file_path) as img:
-                # Convert to RGB if needed
-                if img.mode in ('RGBA', 'P'):
-                    rgb_img = Image.new('RGB', img.size, (255, 255, 255))
-                    rgb_img.paste(img, mask=img.split()[3] if img.mode == 'RGBA' else None)
-                    img = rgb_img
+                # If animated (e.g., GIF/WebP animations), do not modify to preserve animation
+                if getattr(img, "is_animated", False) or ext == ".gif":
+                    return
 
                 # Resize if wider than max_width
                 if img.width > max_width:
@@ -107,7 +106,18 @@ class MediaHandler:
                     new_height = int(img.height * ratio)
                     img = img.resize((max_width, new_height), Image.Resampling.LANCZOS)
 
-                # Save optimized image
-                img.save(file_path, 'JPEG', quality=85, optimize=True)
+                # Save using original format settings
+                if ext in (".jpg", ".jpeg"):
+                    if img.mode not in ("RGB", "L"):
+                        img = img.convert("RGB")
+                    img.save(file_path, "JPEG", quality=85, optimize=True, progressive=True)
+                elif ext == ".png":
+                    # Keep transparency and PNG format
+                    img.save(file_path, "PNG", optimize=True)
+                elif ext == ".webp":
+                    img.save(file_path, "WEBP", quality=85, method=6)
+                else:
+                    # For other formats, skip to avoid unexpected conversions
+                    return
         except Exception as e:
             logger.warning(f"Failed to optimize image {file_path}: {e}")

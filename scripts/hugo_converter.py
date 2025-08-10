@@ -12,6 +12,10 @@ class HugoConverter:
         self.media_handler = media_handler
         self.posts_dir = os.path.join(content_dir, "posts")
         os.makedirs(self.posts_dir, exist_ok=True)
+        self.id_to_slug = {}
+
+    def set_id_to_slug_mapping(self, mapping: Dict[str, str]):
+        self.id_to_slug = mapping or {}
 
     def convert_post(self, post) -> bool:
         """Convert a Notion post into Hugo format"""
@@ -29,6 +33,10 @@ class HugoConverter:
                 'draft': False,
                 'math': self._has_math(post.blocks),  # Check if it contains math formulas
             }
+
+            # Enable Mermaid when needed
+            if self._has_mermaid(post.blocks):
+                front_matter['mermaid'] = True
 
             # Add cover image
             if post.cover_image:
@@ -140,7 +148,8 @@ class HugoConverter:
         if not paragraph:
             return ""
 
-        text = self._rich_text_to_markdown(paragraph.get('rich_text', []))
+        rich_text = paragraph.get('rich_text', [])
+        text = self._rich_text_to_markdown(rich_text)
         return text if text else ""
 
     def _convert_heading(self, block: Dict[str, Any]) -> str:
@@ -151,6 +160,12 @@ class HugoConverter:
             return ""
 
         text = self._rich_text_to_markdown(heading_data.get('rich_text', []))
+
+        # Use Notion block id as a stable anchor so intra-post links work reliably.
+        # Normalize to compact lowercase hex without dashes to match Notion-style fragments.
+        block_id = (block.get('id') or '').replace('-', '').lower()
+        if block_id:
+            return f"{'#' * int(level)} {text} {{#{block_id}}}"
         return f"{'#' * int(level)} {text}"
 
     def _convert_list_item(self, block: Dict[str, Any], prefix: str) -> str:
@@ -185,6 +200,12 @@ class HugoConverter:
 
         language = code_info.get('language', '').lower()
         code_text = self._rich_text_to_plain_text(code_info.get('rich_text', []))
+
+        # Detect Mermaid even if language wasn't set explicitly in Notion
+        mermaid_like = ('graph TD' in code_text) or ('flowchart' in code_text) or ('sequenceDiagram' in code_text)
+        if not language and mermaid_like:
+            language = 'mermaid'
+
         return f"```{language}\n{code_text}\n```"
 
     def _convert_quote(self, block: Dict[str, Any]) -> str:
@@ -264,7 +285,7 @@ class HugoConverter:
                 url = local_path
 
         if url:
-            return f'<audio controls style="width: 100%; max-width: 600px;">\n  <source src="{url}">\n</audio>'
+            return f'<audio controls preload="none" style="width: 100%;">\n  <source src="{url}">\n</audio>'
         return ""
 
     def _convert_equation(self, block: Dict[str, Any]) -> str:
@@ -337,11 +358,9 @@ class HugoConverter:
         if bookmark.get('caption'):
             caption = self._rich_text_to_plain_text(bookmark['caption'])
 
-        # Return bookmark format
-        if caption:
-            return f"- [{caption}]({url})"
-        else:
-            return f"- {url}"
+        # Always return as HTML anchor so we can control target
+        link_text = caption or url
+        return f"- <a href=\"{url}\" target=\"_blank\" rel=\"noopener noreferrer\">{self._escape_html(link_text)}</a>"
 
     def _convert_table(self, block: Dict[str, Any]) -> str:
         """Convert table"""
@@ -411,13 +430,33 @@ class HugoConverter:
                 if column_has_only_images and column_children:
                     # If column only contains images, handle each image separately
                     for child in column_children:
-                        content = self._convert_block(child)
-                        if content:
-                            all_content.append(content)
-                            image_count += 1
+                        image_info = child.get('image', {})
+                        if not image_info:
+                            continue
+                        # Resolve URL
+                        if image_info.get('type') == 'external':
+                            url = image_info.get('external', {}).get('url', '')
+                        else:
+                            url = image_info.get('file', {}).get('url', '')
+                        if not url:
+                            continue
+                        # Download and build HTML directly so Markdown is not nested inside HTML
+                        local_path = self.media_handler.download_media(url, "image")
+                        caption = ""
+                        if image_info.get('caption'):
+                            caption = self._rich_text_to_plain_text(image_info['caption'])
+                        figcaption = f"<figcaption>{caption}</figcaption>" if caption else ""
+                        html = (
+                            f"<figure style=\"margin:0;\">\n"
+                            f"  <img src=\"{local_path}\" alt=\"{caption}\" style=\"width:100%;height:auto;\">\n"
+                            f"  {figcaption}\n"
+                            f"</figure>"
+                        )
+                        all_content.append(html)
+                        image_count += 1
                 else:
                     # Otherwise, handle column content normally
-                    column_content = self._convert_blocks(column_children)
+                    column_content = self._blocks_to_markdown(column_children)
                     if column_content:
                         all_content.append(f'<div style="flex: 1;">\\n\\n{column_content}\\n\\n</div>')
 
@@ -498,15 +537,15 @@ class HugoConverter:
         url = link_preview.get('url', '')
 
         if url:
-            return f"- {url}"
+            return f"- <a href=\"{url}\" target=\"_blank\" rel=\"noopener noreferrer\">{self._escape_html(url)}</a>"
         return ""
 
     def _convert_child_page(self, block: Dict[str, Any]) -> str:
         """Convert child page reference"""
         child_page = block.get('child_page', {})
         title = child_page.get('title', 'Child Page')
-
-        return f"📄 **{title}** *(child page)*"
+        # Avoid verbose placeholders; omit unless we can link to a local page.
+        return ""
 
     def _convert_pdf(self, block: Dict[str, Any]) -> str:
         """Convert PDF"""
@@ -564,27 +603,42 @@ class HugoConverter:
         for rt in rich_texts:
             text = rt.get('plain_text', '')
             annotations = rt.get('annotations', {})
+            href = rt.get('href')
 
-            # Handle links
-            if rt.get('href'):
-                text = f"[{text}]({rt['href']})"
+            # Rewrite Notion links to local Hugo slugs if possible
+            if href:
+                local_href = self._rewrite_notion_link(href)
+            else:
+                local_href = None
 
-            # Handle formatting
-            if annotations.get('bold'):
-                text = f"**{text}**"
-            if annotations.get('italic'):
-                text = f"*{text}*"
+            # Build formatting using HTML to avoid conflicts when wrapped inside HTML spans
+            # and to ensure consistent rendering by Goldmark.
             if annotations.get('code'):
-                text = f"`{text}`"
-            if annotations.get('strikethrough'):
-                text = f"~~{text}~~"
-            if annotations.get('underline'):
-                text = f"<u>{text}</u>"
+                text = f"<code>{self._escape_html(text)}</code>"
+            else:
+                if annotations.get('bold'):
+                    text = f"<strong>{text}</strong>"
+                if annotations.get('italic'):
+                    text = f"<em>{text}</em>"
+                if annotations.get('strikethrough'):
+                    text = f"<del>{text}</del>"
+                if annotations.get('underline'):
+                    text = f"<u>{text}</u>"
 
-            # Handle colors
             color = annotations.get('color', 'default')
             if color != 'default':
                 text = f'<span style="color: {color}">{text}</span>'
+
+            if local_href:
+                is_external = (
+                    local_href.startswith('http://') or
+                    local_href.startswith('https://') or
+                    local_href.startswith('//')
+                )
+                if is_external and not local_href.startswith('/') and not local_href.startswith('#'):
+                    text = f"<a href=\"{local_href}\" target=\"_blank\" rel=\"noopener noreferrer\">{text}</a>"
+                else:
+                    text = f"<a href=\"{local_href}\">{text}</a>"
 
             result.append(text)
 
@@ -596,6 +650,76 @@ class HugoConverter:
             return ""
 
         return ''.join(rt.get('plain_text', '') for rt in rich_texts)
+
+    def _escape_html(self, s: str) -> str:
+        return (
+            s.replace("&", "&amp;")
+             .replace("<", "&lt;")
+             .replace(">", "&gt;")
+        )
+
+    def _rewrite_notion_link(self, url: str) -> str:
+        """Rewrite Notion page links to local Hugo permalinks when possible.
+        Supports URLs like https://www.notion.so/...-<id> or notion://... and raw IDs.
+        """
+        try:
+            # Preserve URL fragment (e.g., #<block-id>) so anchor jumps still work
+            from urllib.parse import urlparse
+            parsed = urlparse(url)
+            fragment = (parsed.fragment or '').strip()
+
+            # If it's a pure same-page anchor, normalize Notion block id fragments
+            if (url.startswith('#') or (not parsed.scheme and not parsed.netloc and not parsed.path)) and fragment:
+                if re.fullmatch(r"[0-9a-fA-F\-]{36}", fragment) or re.fullmatch(r"[0-9a-fA-F]{32}", fragment):
+                    return f"#{fragment.replace('-', '').lower()}"
+                return f"#{fragment}"
+            # compact id pattern (32 hex) or hyphenated uuid
+            import re
+            patterns = [
+                r"([0-9a-f]{32})$",
+                r"([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$",
+                r"([0-9a-f]{32})(?:\?.*)?$",
+            ]
+            matched_id = None
+            # Remove fragment for page id detection
+            url_wo_fragment = url.split('#', 1)[0]
+            for pat in patterns:
+                m = re.search(pat, url_wo_fragment, re.IGNORECASE)
+                if m:
+                    matched_id = m.group(1)
+                    break
+
+            if matched_id and self.id_to_slug:
+                slug = self.id_to_slug.get(matched_id) or self.id_to_slug.get(matched_id.replace('-', ''))
+                if slug:
+                    # Append fragment if provided; normalize Notion-style uuids to compact lowercase
+                    if fragment:
+                        if re.fullmatch(r"[0-9a-fA-F\-]{36}", fragment) or re.fullmatch(r"[0-9a-fA-F]{32}", fragment):
+                            norm_fragment = fragment.replace('-', '').lower()
+                            return f"/posts/{slug}/#{norm_fragment}"
+                        return f"/posts/{slug}/#{fragment}"
+                    return f"/posts/{slug}/"
+        except Exception:
+            pass
+        return url
+
+    def _has_mermaid(self, blocks: List[Dict[str, Any]]) -> bool:
+        """Detect if content contains Mermaid diagrams"""
+        for block in blocks:
+            block_type = block.get('type', '')
+            if block_type == 'code':
+                code_info = block.get('code', {})
+                language = code_info.get('language', '').lower()
+                if language == 'mermaid':
+                    return True
+                text = self._rich_text_to_plain_text(code_info.get('rich_text', []))
+                if 'graph TD' in text or 'flowchart' in text or 'sequenceDiagram' in text:
+                    return True
+            # Search children as well
+            if block.get('children'):
+                if self._has_mermaid(block['children']):
+                    return True
+        return False
 
     def _has_math(self, blocks: List[Dict[str, Any]]) -> bool:
         """Check if contains mathematical formulas"""

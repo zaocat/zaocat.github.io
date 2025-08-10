@@ -1,13 +1,13 @@
-baseURL = 'https://example.com/'
+baseURL = 'https://train.sh/'
 languageCode = 'en-us'
 title = 'Welcome to train.sh'
-theme = 'PaperMod'  # or any other theme
+theme = 'PaperMod'
 hasCJKLanguage = true
+enableEmoji = true
 
 # Basic configuration
 [pagination]
   pagerSize = 10
-enableEmoji = true
 
 [params]
   description = "This blog covers artificial intelligence, productivity, and personal insights."
@@ -15,6 +15,19 @@ enableEmoji = true
   ShowReadingTime = true
   ShowCodeCopyButtons = true
   ShowPostNavLinks = true
+  mermaid = true
+  hasCJKLanguage = true
+  ReadingTimeCharPerMin = 300
+  disableSpecial1stPost = true
+
+[params.homeInfoParams]
+  Title = "👋 Welcome"
+  Content = """
+  A personal space where I document my learning journey in artificial intelligence, share productivity experiments, and record thoughts on technology and life. Nothing groundbreaking here, just notes and reflections from someone trying to understand the world a bit better each day.
+  <br/>
+  <br/>
+  If you'd like to get in touch, you can reach me at binbin@train.sh
+  """
 
 # Menu configuration
 [menu]
@@ -43,3 +56,12 @@ enableEmoji = true
 
   [markup.goldmark.renderer]
     unsafe = true  # Allow HTML
+
+  [markup.goldmark.extensions]
+    typographer = false
+    linkify = true
+    strikethrough = true
+    table = true
+    taskList = true
+  [markup.goldmark.parser]
+    attribute = true

@@ -38,7 +38,6 @@ cd notion-hugo-blog
 ```
 
 This will:
-- Create `config.toml` from `config.toml.example` if missing
 - Create `.env` from `.env.example` if present (otherwise create it manually)
 - Create required directories (`content/`, `static/`, `themes/`)
 - Create a virtualenv and install dependencies from root `requirements.txt`
@@ -85,7 +84,7 @@ hugo server -D
 
 ### Hugo config
 
-Copy `config.toml.example` to `config.toml` and adjust:
+Adjust `config.toml`:
 
 ```toml
 baseURL = "https://your-blog.example/"
@@ -140,11 +139,31 @@ docker run \
   notion-hugo-sync
 ```
 
+## 🚢 Deployment: Cloudflare Pages (GitHub Actions)
+
+This repo includes a GitHub Actions workflow at `/.github/workflows/deploy.yml` that:
+
+- Syncs content from Notion
+- Builds the Hugo site using the PaperMod theme
+- Deploys to Cloudflare Pages using `cloudflare/wrangler-action@v3` and `wrangler pages deploy`
+
+Configure the following in your GitHub repository settings:
+
+- Secrets
+  - `NOTION_TOKEN`: Notion internal integration token
+  - `NOTION_DATABASE_ID`: Database ID from Notion
+  - `CLOUDFLARE_API_TOKEN`: Cloudflare API token with Pages write permissions
+  - `CLOUDFLARE_ACCOUNT_ID`: Your Cloudflare Account ID
+- Variables
+  - `CLOUDFLARE_PAGES_PROJECT`: Your Cloudflare Pages project name
+
+The workflow is triggered on pushes to `main`, on a 6-hourly schedule, and via manual dispatch. Output directory `public` is deployed via Wrangler.
+
 ## 📁 Project Structure
 
 ```
 notion-hugo-blog/
-├── config.toml.example         # Hugo config template
+├── config.toml                 # Hugo config example
 ├── content/                    # Generated posts
 │   └── posts/
 ├── layouts/

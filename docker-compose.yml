@@ -11,5 +11,4 @@ services:
       - ./static:/app/static
       - ./.notion_cache.json:/app/.notion_cache.json
     command: >
-      sh -c "python scripts/notion_sync.py --clean &&
-             hugo --minify"
+      sh -c "python scripts/notion_sync.py --clean && hugo --minify"
