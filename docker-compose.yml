@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  notion-hugo-sync:
+    build: .
+    environment:
+      - NOTION_TOKEN=${NOTION_TOKEN}
+      - NOTION_DATABASE_ID=${NOTION_DATABASE_ID}
+    volumes:
+      - ./content:/app/content
+      - ./static:/app/static
+      - ./.notion_cache.json:/app/.notion_cache.json
+    command: >
+      sh -c "python scripts/notion_sync.py --clean &&
+             hugo --minify"

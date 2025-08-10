@@ -1,0 +1,26 @@
+baseURL = "<https://your-blog.pages.dev/>"
+languageCode = "zh-cn"
+title = "My Blog"
+theme = "ananke"  # 或使用支持数学公式的主题
+
+# 启用数学公式支持
+[params]
+  math = true
+  description = "My personal blog powered by Notion"
+
+# 如果使用 goldmark 渲染器
+[markup]
+  [markup.goldmark]
+    [markup.goldmark.renderer]
+      unsafe = true  # 允许原始 HTML
+
+# 菜单配置
+[menu]
+  [[menu.main]]
+    name = "首页"
+    url = "/"
+    weight = 1
+  [[menu.main]]
+    name = "文章"
+    url = "/posts/"
+    weight = 2
