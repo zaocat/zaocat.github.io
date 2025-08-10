@@ -34,7 +34,10 @@ class HugoConverter:
             if post.cover_image:
                 local_cover = self.media_handler.download_media(post.cover_image, "image")
                 if local_cover:
-                    front_matter['cover'] = local_cover
+                    front_matter['cover'] = {
+                        'image': local_cover,
+                        'alt': post.title
+                    }
 
             # Generate full Markdown file
             file_content = "---\n"
@@ -235,13 +238,13 @@ class HugoConverter:
                 video_id = url.split('/')[-1]
                 return f'{{{{< vimeo "{video_id}" >}}}}'
             else:
-                return f'<video src="{url}" controls></video>'
+                return f'<video controls style="width: 100%; max-width: 800px;">\n  <source src="{url}">\n</video>'
         else:
             # Download video file
             url = video_info.get('file', {}).get('url', '')
             if url:
                 local_path = self.media_handler.download_media(url, "video")
-                return f'<video src="{local_path}" controls></video>'
+                return f'<video controls style="width: 100%; max-width: 800px;">\n  <source src="{local_path}">\n</video>'
 
         return ""
 
@@ -261,7 +264,7 @@ class HugoConverter:
                 url = local_path
 
         if url:
-            return f'<audio src="{url}" controls></audio>'
+            return f'<audio controls style="width: 100%; max-width: 600px;">\n  <source src="{url}">\n</audio>'
         return ""
 
     def _convert_equation(self, block: Dict[str, Any]) -> str:
@@ -314,7 +317,7 @@ class HugoConverter:
 
         # Use blockquote style
         lines = text.split('\n')
-        formatted_lines = [f"> {icon} **Note**"]
+        formatted_lines = [f"> {icon} "]
         formatted_lines.extend(f"> {line}" for line in lines)
 
         return '\n'.join(formatted_lines)
@@ -336,9 +339,9 @@ class HugoConverter:
 
         # Return bookmark format
         if caption:
-            return f"🔖 [{caption}]({url})"
+            return f"- [{caption}]({url})"
         else:
-            return f"🔖 <{url}>"
+            return f"- {url}"
 
     def _convert_table(self, block: Dict[str, Any]) -> str:
         """Convert table"""
@@ -391,18 +394,69 @@ class HugoConverter:
         if not children:
             return ""
 
-        # Use HTML div to simulate column layout
-        content_parts = ['<div style="display: flex; gap: 20px;">']
+        # Collect all content in columns
+        all_content = []
+        image_count = 0
 
-        for child in children:
-            if child.get('type') == 'column':
-                column_children = child.get('children', [])
-                column_content = self._blocks_to_markdown(column_children)
-                content_parts.append(f'<div style="flex: 1;">\n\n{column_content}\n\n</div>')
+        for column in children:
+            if column.get('type') == 'column':
+                column_children = column.get('children', [])
 
-        content_parts.append('</div>')
+                # Check if this column only contains images
+                column_has_only_images = all(
+                    child.get('type') == 'image'
+                    for child in column_children
+                )
 
-        return '\n'.join(content_parts)
+                if column_has_only_images and column_children:
+                    # If column only contains images, handle each image separately
+                    for child in column_children:
+                        content = self._convert_block(child)
+                        if content:
+                            all_content.append(content)
+                            image_count += 1
+                else:
+                    # Otherwise, handle column content normally
+                    column_content = self._convert_blocks(column_children)
+                    if column_content:
+                        all_content.append(f'<div style="flex: 1;">\\n\\n{column_content}\\n\\n</div>')
+
+        # If all columns are images, use image grid layout
+        if image_count == len(all_content):
+            return f'''<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin: 20px 0;">
+    {chr(10).join(all_content)}
+    </div>'''
+
+        # Otherwise, use normal flex layout
+        return f'''<div style="display: flex; gap: 20px; flex-wrap: wrap;">
+    {chr(10).join(all_content)}
+    </div>'''
+
+    def _convert_image(self, block: Dict[str, Any]) -> str:
+        """Convert image"""
+        image_info = block.get('image', {})
+        if not image_info:
+            return ""
+
+        if image_info.get('type') == 'external':
+            url = image_info.get('external', {}).get('url', '')
+        else:
+            url = image_info.get('file', {}).get('url', '')
+
+        if not url:
+            return ""
+
+        # Download image
+        local_path = self.media_handler.download_media(url, "image")
+
+        # Get caption
+        caption = ""
+        if image_info.get('caption'):
+            caption = self._rich_text_to_plain_text(image_info['caption'])
+
+        # Check if in column layout (simplified by checking parent context)
+        # If in grid layout, no extra styles needed
+        return f"![{caption}]({local_path})"
 
     def _convert_embed(self, block: Dict[str, Any]) -> str:
         """Convert embedded content"""
@@ -444,7 +498,7 @@ class HugoConverter:
         url = link_preview.get('url', '')
 
         if url:
-            return f"🔗 <{url}>"
+            return f"- {url}"
         return ""
 
     def _convert_child_page(self, block: Dict[str, Any]) -> str:

@@ -1,118 +1,114 @@
 # Notion-Hugo Blog Sync
 
-A powerful automation tool that syncs your Notion database to a Hugo static site and deploys it to Cloudflare Pages. Write in Notion, publish everywhere.
+Sync your Notion database to a Hugo static site. Write in Notion, publish with Hugo.
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Python](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![Hugo](https://img.shields.io/badge/hugo-0.148.2+-ff4088.svg)](https://gohugo.io/)
+[![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
+[![Hugo](https://img.shields.io/badge/hugo-0.148.0%2B-ff4088.svg)](https://gohugo.io/)
 [![Notion API](https://img.shields.io/badge/Notion%20API-v2.4.0-black)](https://developers.notion.com/)
 
 ## ✨ Features
 
-- 📝 **Full Notion Support**: Paragraphs, headings, lists, code blocks, quotes, toggles, callouts, and more
-- 🖼️ **Rich Media Handling**: Automatically downloads and optimizes images, videos, and audio files
-- 🔢 **Math Support**: Renders LaTeX equations using KaTeX/MathJax
-- 🎥 **Embed Support**: YouTube, Vimeo, Twitter/X, GitHub Gists, and more
-- ⚡ **Smart Caching**: Only updates changed content, avoiding redundant downloads
-- 🔄 **Automated Deployment**: GitHub Actions workflow for continuous deployment
-- 🌐 **Cloudflare Pages**: Fast, global CDN deployment
-- 🎨 **Hugo Flexibility**: Compatible with any Hugo theme
-- 🚀 **Performance Optimized**: Concurrent downloads, image optimization, and progress tracking
+- **Full Notion support**: Paragraphs, headings, lists, code blocks, quotes, toggles, callouts
+- **Rich media handling**: Downloads and optimizes images, videos, audio
+- **Math support**: KaTeX/MathJax via `layouts/partials/math.html`
+- **Smart caching**: Updates only changed content
+- **Hugo flexibility**: Works with any theme (e.g., PaperMod)
+- **Performance**: Concurrent downloads, progress tracking
 
 ## 📋 Prerequisites
 
-- Python 3.10 or higher
-- Hugo (extended version recommended)
-- A Notion account with an integration token
-- A Cloudflare account (for deployment)
-- A GitHub repository
+- **Python**: 3.10 or higher
+- **Hugo**: Extended version recommended
+- **Notion**: Integration token and a database
 
 ## 🚀 Quick Start
 
-### 1. Clone the Repository
+### 1) Clone
 
 ```bash
 git clone https://github.com/trainsh/notion-hugo-blog.git
 cd notion-hugo-blog
 ```
 
-### 2. Set Up Notion Integration
+### 2) One-time setup (recommended)
 
-1. Go to [https://www.notion.so/my-integrations](https://www.notion.so/my-integrations)
-2. Create a new integration
-3. Copy the Internal Integration Token
-4. Create a Notion database with these properties:
-   - **Title** (Title): Post title
-   - **Slug** (Text): URL-friendly post identifier
-   - **Date** (Date): Publication date
-   - **Tags** (Multi-select): Post categories
-   - **Published** (Checkbox): Whether to publish the post
-5. Share the database with your integration
+```bash
+./setup.sh
+```
 
-### 3. Install Dependencies
+This will:
+- Create `config.toml` from `config.toml.example` if missing
+- Create `.env` from `.env.example` if present (otherwise create it manually)
+- Create required directories (`content/`, `static/`, `themes/`)
+- Create a virtualenv and install dependencies from root `requirements.txt`
+
+### 3) Notion integration
+
+1. Go to `https://www.notion.so/my-integrations`
+2. Create an integration and copy the Internal Integration Token
+3. Create a Notion database with properties:
+   - **Title** (Title)
+   - **Slug** (Text)
+   - **Date** (Date)
+   - **Tags** (Multi-select)
+   - **Published** (Checkbox)
+4. Share the database with your integration
+
+### 4) Environment variables
+
+Create `.env` in the project root with:
+
+```bash
+NOTION_TOKEN=your_notion_integration_token
+NOTION_DATABASE_ID=your_database_id
+```
+
+### 5) Install dependencies (if you didn’t run setup.sh)
 
 ```bash
 uv venv --python 3.10
-uv pip install -r scripts/requirements.txt
+uv pip install -r requirements.txt
 ```
 
-### 4. Configure Environment
-
-Create a `.env` file:
+### 6) Run locally
 
 ```bash
-# Notion Configuration
-NOTION_TOKEN=your_notion_integration_token
-NOTION_DATABASE_ID=your_database_id
-
-# Hugo Configuration
-HUGO_CONTENT_DIR=./content
-HUGO_STATIC_DIR=./static
-
-# Optional Settings
-MAX_CONCURRENT_DOWNLOADS=5
-OPTIMIZE_IMAGES=true
-MAX_IMAGE_WIDTH=1920
-```
-
-### 5. Run Locally
-
-```bash
-# Sync content from Notion
+# Sync content from Notion (clears existing posts first)
 python scripts/notion_sync.py --clean
 
-# Initialize site if not exist
-# hugo new site . --force
-
-# Start Hugo development server
+# Start Hugo dev server
 hugo server -D
 ```
 
 ## 🔧 Configuration
 
-### Hugo Configuration
+### Hugo config
 
-Edit `config.toml` to customize your site:
+Copy `config.toml.example` to `config.toml` and adjust:
 
 ```toml
-baseURL = "https://your-blog.pages.dev/"
+baseURL = "https://your-blog.example/"
 languageCode = "en-us"
 title = "My Blog"
-theme = "ananke"
+theme = "PaperMod"
 
 [params]
-  math = true  # Enable math support
+  math = true
   description = "My personal blog powered by Notion"
 
 [markup]
-  [markup.goldmark]
-    [markup.goldmark.renderer]
-      unsafe = true  # Allow raw HTML for embeds
+  [markup.highlight]
+    style = 'monokai'
+  [markup.goldmark.renderer]
+    unsafe = true
 ```
 
-### Math Support
+### Math support
 
-Add KaTeX support to your theme by including in `layouts/partials/math.html`:
+This repo provides `layouts/partials/math.html`. Ensure your theme includes it (e.g., from `baseof.html`).
+
+Minimal include if you need to add it to a theme:
 
 ```html
 {{ if .Params.math }}
@@ -122,131 +118,86 @@ Add KaTeX support to your theme by including in `layouts/partials/math.html`:
 {{ end }}
 ```
 
-## 🚢 Deployment
+## 🐳 Docker
 
-### GitHub Actions Setup
-
-1. Add secrets to your GitHub repository:
-   - `NOTION_TOKEN`: Your Notion integration token
-   - `NOTION_DATABASE_ID`: Your Notion database ID
-   - `CLOUDFLARE_API_TOKEN`: Your Cloudflare API token
-   - `CLOUDFLARE_ACCOUNT_ID`: Your Cloudflare account ID
-
-2. The workflow runs automatically on:
-   - Push to main branch
-   - Every 6 hours (configurable)
-   - Manual trigger
-
-### Cloudflare Pages Setup
-
-1. Create a new Pages project in Cloudflare Dashboard
-2. Choose "Direct Upload" deployment method
-3. Note the project name for GitHub Actions configuration
-
-## 🐳 Docker Support
-
-Run the entire stack in Docker:
+Build and run with Docker Compose:
 
 ```bash
-# Build and run
 docker-compose up
+```
 
-# Or use the Docker image directly
+Compose uses `${NOTION_TOKEN}` and `${NOTION_DATABASE_ID}` from your shell or `.env` file. It will sync and then build the site with `hugo --minify`.
+
+Run the image directly:
+
+```bash
 docker build -t notion-hugo-sync .
-docker run -e NOTION_TOKEN=your_token -e NOTION_DATABASE_ID=your_id notion-hugo-sync
+docker run \
+  -e NOTION_TOKEN=your_token \
+  -e NOTION_DATABASE_ID=your_db_id \
+  -v "$PWD/content":/app/content \
+  -v "$PWD/static":/app/static \
+  notion-hugo-sync
 ```
 
 ## 📁 Project Structure
 
 ```
 notion-hugo-blog/
-├── .github/
-│   └── workflows/
-│       └── deploy.yml          # GitHub Actions workflow
+├── config.toml.example         # Hugo config template
+├── content/                    # Generated posts
+│   └── posts/
+├── layouts/
+│   └── partials/
+│       └── math.html           # KaTeX support
 ├── scripts/
+│   ├── cache_manager.py
+│   ├── concurrent_downloader.py
+│   ├── hugo_converter.py
+│   ├── logging_utils.py
+│   ├── media_handler.py
+│   ├── notion_service.py       # Notion API client/service
 │   ├── notion_sync.py          # Main sync script
-│   ├── notion_client.py        # Notion API client
-│   ├── hugo_converter.py       # Notion to Hugo converter
-│   ├── media_handler.py        # Media download handler
-│   └── requirements.txt        # Python dependencies
-├── content/
-│   └── posts/                  # Generated blog posts
+│   └── retry_decorator.py
 ├── static/
-│   ├── images/                 # Downloaded images
-│   ├── videos/                 # Downloaded videos
-│   └── audio/                  # Downloaded audio files
+│   ├── images/
+│   ├── videos/
+│   └── audio/
 ├── themes/                     # Hugo themes
-├── config.toml                 # Hugo configuration
-├── Dockerfile                  # Docker configuration
-└── docker-compose.yml          # Docker Compose configuration
+├── requirements.txt            # Python dependencies (root)
+├── Dockerfile                  # Docker build
+├── docker-compose.yml          # Docker Compose
+└── setup.sh                    # One-time setup helper
 ```
 
-## 🛠️ Advanced Usage
+## 🛠️ Advanced
 
-### Custom Block Types
-
-Extend `hugo_converter.py` to support custom Notion blocks:
-
-```python
-def _convert_custom_block(self, block: Dict[str, Any]) -> str:
-    # Your custom conversion logic
-    return markdown_output
-```
-
-### Media Processing
-
-Customize image optimization in `media_handler.py`:
-
-```python
-def _optimize_image(self, file_path: str, max_width: int = 1920):
-    # Custom image processing logic
-    pass
-```
-
-### Caching Strategy
-
-The tool includes intelligent caching to:
-- Skip unchanged posts
-- Reuse downloaded media files
-- Store sync metadata
+- **Custom blocks**: Extend `scripts/hugo_converter.py`
+- **Media processing**: Adjust `scripts/media_handler.py`
+- **Caching**: See `scripts/cache_manager.py`
 
 ## 🐛 Troubleshooting
 
-### Common Issues
+- **Math not rendering**: Ensure `math: true` in front matter and the partial is included by your theme
+- **Media download failures**: Check network, increase retries, verify Notion URLs
+- **Notion rate limits**: Slow down sync frequency
 
-1. **Math formulas not rendering**
-   - Ensure your Hugo theme supports KaTeX/MathJax
-   - Check that `math: true` is set in the post's front matter
+### Debug logging
 
-2. **Media download failures**
-   - Check your internet connection
-   - Verify Notion media URLs are accessible
-   - Increase retry attempts in configuration
-
-3. **Notion API rate limits**
-   - The tool includes rate limiting
-   - Reduce sync frequency if needed
-
-4. **Large media files**
-   - Consider using external hosting for very large files
-   - Adjust `MAX_CONCURRENT_DOWNLOADS` for better performance
-
-### Debug Mode
-
-Run with verbose logging:
+Set the log level via environment variable (handled by `scripts/logging_utils.py`):
 
 ```bash
-python scripts/notion_sync.py --log-level DEBUG
+LOG_LEVEL=DEBUG python scripts/notion_sync.py
 ```
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
+Contributions are welcome! Please open an issue to discuss major changes first.
 
 1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
+2. Create a feature branch (`git checkout -b feature/YourFeature`)
+3. Commit (`git commit -m "feat: add YourFeature"`)
+4. Push (`git push origin feature/YourFeature`)
 5. Open a Pull Request
 
 ## 📄 License
@@ -255,9 +206,7 @@ Copyright 2025 Binbin Shen
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
+You may obtain a copy of the License at `http://www.apache.org/licenses/LICENSE-2.0`.
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -267,15 +216,14 @@ limitations under the License.
 
 ## 🙏 Acknowledgments
 
-- [Hugo](https://gohugo.io/) - The world's fastest framework for building websites
-- [Notion API](https://developers.notion.com/) - Official Notion API
-- [Cloudflare Pages](https://pages.cloudflare.com/) - Fast, secure hosting
-- [KaTeX](https://katex.org/) - Fast math typesetting library
+- [Hugo](https://gohugo.io/)
+- [Notion API](https://developers.notion.com/)
+- [KaTeX](https://katex.org/)
 
 ## 📮 Support
 
-- Create an [Issue](https://github.com/trainsh/notion-hugo-blog/issues) for bug reports
-- Start a [Discussion](https://github.com/trainsh/notion-hugo-blog/discussions) for questions
+- Create an Issue: `https://github.com/trainsh/notion-hugo-blog/issues`
+- Start a Discussion: `https://github.com/trainsh/notion-hugo-blog/discussions`
 
 ---
 

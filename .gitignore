@@ -1,5 +1,35 @@
-.env
-.vscode/
-content/
-static/
+# Hugo
+/public/
+/resources/_gen/
+/assets/jsconfig.json
+hugo_stats.json
+
+# User config (copied from example)
+config.toml
+
+# Hugo themes (user installed)
+/themes/
+.gitmodules
+
+# Python
 __pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Environment variables
+.env
+
+# Generated content
+/static/images/
+/static/videos/
+/static/audio/
+/content/posts/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

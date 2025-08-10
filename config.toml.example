@@ -1,8 +1,7 @@
 baseURL = 'https://example.com/'
 languageCode = 'en-us'
-title = 'Welcome to train.sh'
+title = 'My Blog'
 theme = 'PaperMod'  # or any other theme
-hasCJKLanguage = true
 
 # Basic configuration
 [pagination]
@@ -10,8 +9,8 @@ hasCJKLanguage = true
 enableEmoji = true
 
 [params]
-  description = "This blog covers artificial intelligence, productivity, and personal insights."
-  author = "Binbin Shen"
+  description = "My personal blog"
+  author = "Your Name"
   ShowReadingTime = true
   ShowCodeCopyButtons = true
   ShowPostNavLinks = true
