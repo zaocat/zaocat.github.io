@@ -5,7 +5,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 def retry(max_attempts=3, delay=1, backoff=2, exceptions=(Exception,)):
-    """重试装饰器"""
+    """Retry decorator"""
     def decorator(func):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):

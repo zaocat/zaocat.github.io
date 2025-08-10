@@ -6,22 +6,55 @@ import argparse
 from dotenv import load_dotenv
 from tqdm import tqdm
 
-from notion_client import NotionClient
+from notion_service import NotionClient
 from hugo_converter import HugoConverter
 from media_handler import MediaHandler
+from logging_utils import setup_logging
 
-# 设置日志
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+# Configure logging
+setup_logging()
 logger = logging.getLogger(__name__)
 
+
+def test_notion_connection(notion_client: NotionClient) -> bool:
+    """Test Notion connection"""
+    print("🔍 Testing Notion connection...")
+
+    result = notion_client.test_connection()
+
+    if result['success']:
+        db_info = result['database_info']
+        print(f"✅ Successfully connected to Notion!")
+        print(f"📊 Database Information:")
+        print(f"   - Name: {db_info['title']}")
+        print(f"   - ID: {db_info['id'][:8]}...{db_info['id'][-8:]}")
+        print(f"   - Properties: {db_info['total_properties']}")
+        print(f"   - Sample Posts: {db_info['sample_post_count']}")
+
+        if result['warnings']:
+            print(f"⚠️  Warnings:")
+            for warning in result['warnings']:
+                print(f"   - {warning}")
+
+        # Get statistics
+        stats = notion_client.get_database_stats()
+        if stats:
+            print(f"📈 Database Statistics:")
+            print(f"   - Published Posts: {stats.get('published_posts', 'Unknown')}")
+
+        return True
+    else:
+        print(f"❌ Connection test failed!")
+        if result['error']:
+            print(f"   Error: {result['error']}")
+        return False
+
+
 def main():
-    # 加载环境变量
+    # Load environment variables
     load_dotenv()
 
-    # 解析命令行参数
+    # Parse command-line arguments
     parser = argparse.ArgumentParser(description='Sync Notion posts to Hugo')
     parser.add_argument('--notion-token', default=os.getenv('NOTION_TOKEN'),
                         help='Notion API token')
@@ -36,28 +69,32 @@ def main():
 
     args = parser.parse_args()
 
-    # 验证必需的参数
+    # Validate required parameters
     if not args.notion_token or not args.database_id:
         logger.error("NOTION_TOKEN and NOTION_DATABASE_ID are required")
         sys.exit(1)
 
     try:
-        # 初始化组件
+        # Initialize components
         notion_client = NotionClient(args.notion_token, args.database_id)
         media_handler = MediaHandler(args.static_dir)
         hugo_converter = HugoConverter(args.content_dir, media_handler)
 
-        # 清理现有文章
+        # Test connection
+        if not test_notion_connection(notion_client):
+            sys.exit(1)
+
+        # Clean existing posts
         if args.clean:
             logger.info("Cleaning existing posts...")
             hugo_converter.clean_posts_directory()
 
-        # 获取 Notion 文章
+        # Fetch Notion posts
         logger.info("Fetching posts from Notion...")
         posts = notion_client.get_published_posts()
         logger.info(f"Found {len(posts)} published posts")
 
-        # 转换文章
+        # Convert posts
         success_count = 0
         with tqdm(total=len(posts), desc="Converting posts") as pbar:
             for post in posts:
@@ -68,7 +105,7 @@ def main():
             else:
                 logger.error(f"Failed to convert: {post.title}")
 
-        # 汇总结果
+        # Summarize results
         logger.info(f"Successfully converted {success_count}/{len(posts)} posts")
 
         if success_count < len(posts):

@@ -13,7 +13,7 @@ class ConcurrentDownloader:
 
     async def download_file(self, session: aiohttp.ClientSession,
                           url: str, save_path: str) -> bool:
-        """异步下载单个文件"""
+        """Asynchronously download a single file"""
         async with self.semaphore:
             try:
                 async with session.get(url) as response:
@@ -30,7 +30,7 @@ class ConcurrentDownloader:
                 return False
 
     async def download_batch(self, downloads: List[Tuple[str, str]]) -> Dict[str, bool]:
-        """批量下载文件"""
+        """Download a batch of files"""
         async with aiohttp.ClientSession() as session:
             tasks = []
             results = {}

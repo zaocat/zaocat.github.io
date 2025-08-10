@@ -3,9 +3,9 @@
 A powerful automation tool that syncs your Notion database to a Hugo static site and deploys it to Cloudflare Pages. Write in Notion, publish everywhere.
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Python](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
-[![Hugo](https://img.shields.io/badge/hugo-0.110+-ff4088.svg)](https://gohugo.io/)
-[![Notion API](https://img.shields.io/badge/Notion%20API-v2.2.0-black)](https://developers.notion.com/)
+[![Python](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![Hugo](https://img.shields.io/badge/hugo-0.148.2+-ff4088.svg)](https://gohugo.io/)
+[![Notion API](https://img.shields.io/badge/Notion%20API-v2.4.0-black)](https://developers.notion.com/)
 
 ## ✨ Features
 
@@ -21,7 +21,7 @@ A powerful automation tool that syncs your Notion database to a Hugo static site
 
 ## 📋 Prerequisites
 
-- Python 3.8 or higher
+- Python 3.10 or higher
 - Hugo (extended version recommended)
 - A Notion account with an integration token
 - A Cloudflare account (for deployment)
@@ -80,6 +80,9 @@ MAX_IMAGE_WIDTH=1920
 ```bash
 # Sync content from Notion
 python scripts/notion_sync.py --clean
+
+# Initialize site if not exist
+# hugo new site . --force
 
 # Start Hugo development server
 hugo server -D

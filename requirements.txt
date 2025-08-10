@@ -1,0 +1,8 @@
+notion-client
+requests
+python-dotenv
+pyyaml
+Pillow
+beautifulsoup4
+tqdm
+hugo
