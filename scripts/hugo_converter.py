@@ -183,8 +183,9 @@ class HugoConverter:
             for child in children:
                 child_text = self._convert_block(child)
                 if child_text:
-                    # Indent child items
-                    indented = '\n'.join(f"  {line}" for line in child_text.split('\n'))
+                    # Indent child items by 4 spaces so Goldmark treats them as part of the same list item.
+                    # This preserves ordered list numbering and keeps nested bullets/numbered lists.
+                    indented = '\n'.join(f"    {line}" for line in child_text.split('\n'))
                     child_content.append(indented)
 
             if child_content:

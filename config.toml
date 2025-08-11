@@ -5,6 +5,11 @@ theme = 'PaperMod'
 hasCJKLanguage = true
 enableEmoji = true
 
+# Build settings
+buildFuture = true
+buildDrafts = false
+timeZone = 'Asia/Shanghai'
+
 # Basic configuration
 [pagination]
   pagerSize = 10
