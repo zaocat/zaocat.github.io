@@ -31,8 +31,20 @@ timeZone = 'Asia/Shanghai'
   A personal space where I document my learning journey in artificial intelligence, share productivity experiments, and record thoughts on technology and life. Nothing groundbreaking here, just notes and reflections from someone trying to understand the world a bit better each day.
   <br/>
   <br/>
-  If you'd like to get in touch, you can reach me at binbin@train.sh
   """
+
+[[params.socialIcons]]
+  name = "email"
+  url = "mailto:binbin@train.sh"
+
+[params.fuseOpts]
+  isCaseSensitive = false
+  shouldSort = true
+  location = 0
+  distance = 1000
+  threshold = 0.4
+  minMatchCharLength = 0
+  keys = ["title", "permalink", "summary", "content"]
 
 # Menu configuration
 [menu]
@@ -42,8 +54,8 @@ timeZone = 'Asia/Shanghai'
     weight = 1
 
   [[menu.main]]
-    name = "Posts"
-    url = "/posts/"
+    name = "Archives"
+    url = "/archives/"
     weight = 2
 
   [[menu.main]]
@@ -51,8 +63,16 @@ timeZone = 'Asia/Shanghai'
     url = "/tags/"
     weight = 3
 
+  [[menu.main]]
+    name = "Search"
+    url = "/search/"
+    weight = 4
+
 [taxonomies]
   tag = "tags"
+
+[outputs]
+  home = ["HTML", "RSS", "JSON"]
 
 # Syntax highlighting
 [markup]
