@@ -489,14 +489,19 @@ class HugoConverter:
         # Download image
         local_path = self.media_handler.download_media(url, "image")
 
-        # Get caption
-        caption = ""
+        # Get caption (plain for alt, markdown for figcaption)
+        plain_caption = ""
+        md_caption = ""
         if image_info.get('caption'):
-            caption = self._rich_text_to_plain_text(image_info['caption'])
+            plain_caption = self._rich_text_to_plain_text(image_info['caption'])
+            md_caption = self._rich_text_to_markdown(image_info['caption'])
 
-        # Check if in column layout (simplified by checking parent context)
-        # If in grid layout, no extra styles needed
-        return f"![{caption}]({local_path})"
+        # Build HTML for image with optional alignment wrapper
+        img_html = f"<img src=\"{local_path}\" alt=\"{plain_caption}\">"
+        figure_content = img_html
+        if md_caption:
+            figure_content += f"<figcaption>{md_caption}</figcaption>"
+        return f"<figure>{figure_content}</figure>"
 
     def _convert_embed(self, block: Dict[str, Any]) -> str:
         """Convert embedded content"""
@@ -606,9 +611,26 @@ class HugoConverter:
             annotations = rt.get('annotations', {})
             href = rt.get('href')
 
-            # Rewrite Notion links to local Hugo slugs if possible
+            # Detect GitHub PR URLs and format as friendly link
             if href:
-                local_href = self._rewrite_notion_link(href)
+                m = re.search(r'github\.com/.+?/pull/(\d+)', href)
+                if m:
+                    pr_number = m.group(1)
+                    # Use GitHub icon with friendly text
+                    gh_icon = '<img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" alt="GitHub" style="display:inline-block; height:1.5em; vertical-align:middle;">'
+                    text = f"{gh_icon} Pull Request #{pr_number}"
+                    # Keep the original URL for link target
+                    local_href = href
+                    is_external = True
+            else:
+                local_href = None
+
+            # Rewrite Notion links to local Hugo slugs if possible (skip for GitHub PR URLs)
+            if href:
+                if re.search(r'github\.com/.+?/pull/\d+', href):
+                    local_href = href
+                else:
+                    local_href = self._rewrite_notion_link(href)
             else:
                 local_href = None
 
