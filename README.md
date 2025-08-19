@@ -13,7 +13,7 @@ Sync your Notion database to a Hugo static site. Write in Notion, publish with H
 - **Rich media handling**: Downloads and optimizes images, videos, audio
 - **Math support**: KaTeX/MathJax via `layouts/partials/math.html`
 - **Smart caching**: Updates only changed content
-- **Hugo flexibility**: Works with any theme (e.g., PaperMod)
+- **Hugo flexibility**: Works with any theme (e.g., PaperInk)
 - **Performance**: Concurrent downloads, progress tracking
 
 ## 📋 Prerequisites
@@ -90,7 +90,7 @@ Adjust `config.toml`:
 baseURL = "https://your-blog.example/"
 languageCode = "en-us"
 title = "My Blog"
-theme = "PaperMod"
+theme = "PaperInk"
 
 [params]
   math = true
@@ -144,7 +144,7 @@ docker run \
 This repo includes a GitHub Actions workflow at `/.github/workflows/deploy.yml` that:
 
 - Syncs content from Notion
-- Builds the Hugo site using the PaperMod theme
+- Builds the Hugo site using the PaperInk theme
 - Deploys to Cloudflare Pages using `cloudflare/wrangler-action@v3` and `wrangler pages deploy`
 
 Configure the following in your GitHub repository settings:

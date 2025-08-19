@@ -31,13 +31,13 @@ ENV PATH="/app/.venv/bin:${PATH}"
 # Copy project files
 COPY . .
 
-# Download PaperMod theme
+# Download PaperInk theme
 RUN mkdir -p themes \
-    && if [ ! -d themes/PaperMod ]; then \
-        echo "PaperMod theme not found. Cloning..." && \
-        git clone https://github.com/adityatelange/hugo-PaperMod.git themes/PaperMod; \
+    && if [ ! -d themes/PaperInk ]; then \
+        echo "PaperInk theme not found. Cloning..." && \
+        git clone https://github.com/binbinsh/hugo-paperink.git themes/PaperInk; \
        else \
-        echo "PaperMod theme already present."; \
+        echo "PaperInk theme already present."; \
        fi
 
 # Default command

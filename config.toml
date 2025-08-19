@@ -1,7 +1,7 @@
 baseURL = 'https://train.sh/'
 languageCode = 'en-us'
 title = 'Welcome to train.sh'
-theme = 'PaperMod'
+theme = 'PaperInk'
 hasCJKLanguage = true
 enableEmoji = true
 
@@ -19,7 +19,7 @@ timeZone = 'Asia/Shanghai'
   author = "Binbin Shen"
   ShowReadingTime = true
   ShowCodeCopyButtons = true
-  ShowPostNavLinks = true
+  ShowPostNavLinks = false
   mermaid = true
   hasCJKLanguage = true
   ReadingTimeCharPerMin = 300
@@ -28,9 +28,7 @@ timeZone = 'Asia/Shanghai'
 [params.homeInfoParams]
   Title = "👋 Welcome"
   Content = """
-  A personal space where I document my learning journey in artificial intelligence, share productivity experiments, and record thoughts on technology and life. Nothing groundbreaking here, just notes and reflections from someone trying to understand the world a bit better each day.
-  <br/>
-  <br/>
+  A personal space where I document my learning journey in artificial intelligence, share productivity experiments, and record thoughts on technology and life. Nothing groundbreaking here, just notes and reflections from someone trying to understand the world a bit better each day.<br/>
   """
 
 [[params.socialIcons]]
@@ -77,7 +75,10 @@ timeZone = 'Asia/Shanghai'
 # Syntax highlighting
 [markup]
   [markup.highlight]
-    style = 'monokai'
+    noClasses = false
+    codeFences = true
+    guessSyntax = true
+    style = "github-dark"
 
   [markup.goldmark.renderer]
     unsafe = true  # Allow HTML

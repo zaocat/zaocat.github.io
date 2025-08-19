@@ -57,7 +57,7 @@ fi
 echo ""
 echo "📚 Next steps:"
 echo "1. Install a Hugo theme in the 'themes' directory"
-echo "   Example: git submodule add https://github.com/adityatelange/hugo-PaperMod.git themes/PaperMod"
+echo "   Example: git submodule add https://github.com/binbinsh/hugo-paperink.git themes/PaperInk"
 echo "2. Edit config.toml with your settings"
 echo "3. Add your Notion credentials to .env"
 echo "4. Run 'python scripts/notion_sync.py' to sync content"
