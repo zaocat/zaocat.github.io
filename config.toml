@@ -22,18 +22,18 @@ timeZone = 'Asia/Shanghai'
   ShowPostNavLinks = false
   mermaid = true
   hasCJKLanguage = true
-  ReadingTimeCharPerMin = 300
+  ReadingTimeCharPerMin = 180
   disableSpecial1stPost = true
 
 [params.homeInfoParams]
   Title = "👋 Welcome"
   Content = """
-  A personal space where I document my learning journey in artificial intelligence, share productivity experiments, and record thoughts on technology and life. Nothing groundbreaking here, just notes and reflections from someone trying to understand the world a bit better each day.<br/>
+  A personal space where I document my learning journey in artificial intelligence, share productivity experiments, and record thoughts on technology and life. Nothing groundbreaking here, just notes and reflections from someone trying to make sense of things over time.<br/>
   """
 
 [[params.socialIcons]]
   name = "email"
-  url = "mailto:binbin@train.sh"
+  url = "mailto:hello@train.sh"
 
 [params.fuseOpts]
   isCaseSensitive = false
