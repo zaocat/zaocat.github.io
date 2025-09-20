@@ -1,7 +1,7 @@
 baseURL = 'https://train.sh/'
 languageCode = 'en-us'
 title = 'Welcome to train.sh'
-theme = 'PaperInk'
+theme = 'FixIt'
 hasCJKLanguage = true
 enableEmoji = true
 
@@ -68,12 +68,15 @@ timeZone = 'Asia/Shanghai'
 
 [taxonomies]
   tag = "tags"
+  _merge = "shallow"
 
 [outputs]
   home = ["HTML", "RSS", "JSON"]
+  _merge = "shallow"
 
 # Syntax highlighting
 [markup]
+   _merge = "shallow"
   [markup.highlight]
     noClasses = false
     codeFences = true
@@ -91,3 +94,5 @@ timeZone = 'Asia/Shanghai'
     taskList = true
   [markup.goldmark.parser]
     attribute = true
+ignoreLogs = ['warning-dev-version']  # 忽略开发版本警告
+# 以下配置表示继承 FixIt 主题的 markup，outputs 和 taxonomies 配置
